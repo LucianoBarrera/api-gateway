@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/LucianoBarrera/api-gateway/internal/config"
 )
 
 func TestHandler(t *testing.T) {
@@ -33,13 +35,24 @@ func TestHandler(t *testing.T) {
 }
 
 func TestAPIGatewayHandler_GET(t *testing.T) {
-	s := &Server{}
+	// Create a test server with known services configuration
+	appConfig := config.AppConfig{
+		KnownServices: map[string]string{
+			"users": "http://users-example-dev/",
+			"auth":  "http://auth-example-dev/",
+		},
+	}
+
+	s := &Server{
+		appConfig: appConfig,
+	}
 
 	tests := []struct {
 		name           string
 		path           string
 		expectedStatus int
 		expectedPath   string
+		expectedError  string
 	}{
 		{
 			name:           "valid service and path",
@@ -64,6 +77,13 @@ func TestAPIGatewayHandler_GET(t *testing.T) {
 			path:           "/api/",
 			expectedStatus: http.StatusBadRequest,
 			expectedPath:   "",
+		},
+		{
+			name:           "unknown service",
+			path:           "/api/unknown/profile",
+			expectedStatus: http.StatusNotFound,
+			expectedPath:   "",
+			expectedError:  "Service not found",
 		},
 	}
 
@@ -93,12 +113,38 @@ func TestAPIGatewayHandler_GET(t *testing.T) {
 					t.Errorf("expected method %s, got %s", http.MethodGet, response["method"])
 				}
 			}
+
+			if tt.expectedStatus == http.StatusNotFound {
+				var response map[string]string
+				err := json.Unmarshal(w.Body.Bytes(), &response)
+				if err != nil {
+					t.Fatalf("failed to unmarshal error response: %v", err)
+				}
+
+				if response["error"] != tt.expectedError {
+					t.Errorf("expected error %s, got %s", tt.expectedError, response["error"])
+				}
+
+				if response["service"] == "" {
+					t.Error("expected service field in error response")
+				}
+			}
 		})
 	}
 }
 
 func TestAPIGatewayHandler_POST(t *testing.T) {
-	s := &Server{}
+	// Create a test server with known services configuration
+	appConfig := config.AppConfig{
+		KnownServices: map[string]string{
+			"users": "http://users-example-dev/",
+			"auth":  "http://auth-example-dev/",
+		},
+	}
+
+	s := &Server{
+		appConfig: appConfig,
+	}
 
 	requestBody := `{"name": "John Doe", "email": "john@example.com"}`
 
@@ -150,9 +196,19 @@ func TestAPIGatewayHandler_POST(t *testing.T) {
 }
 
 func TestAPIGatewayHandler_WithHeaders(t *testing.T) {
-	s := &Server{}
+	// Create a test server with known services configuration
+	appConfig := config.AppConfig{
+		KnownServices: map[string]string{
+			"users": "http://users-example-dev/",
+			"auth":  "http://auth-example-dev/",
+		},
+	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/products/123/reviews", nil)
+	s := &Server{
+		appConfig: appConfig,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users/123/reviews", nil)
 	req.Header.Set("X-Request-ID", "req-123")
 	req.Header.Set("User-Agent", "test-agent")
 	req.Header.Set("Accept", "application/json")
@@ -171,7 +227,7 @@ func TestAPIGatewayHandler_WithHeaders(t *testing.T) {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	expectedPath := "products/123/reviews"
+	expectedPath := "users/123/reviews"
 	if response["path"] != expectedPath {
 		t.Errorf("expected path %s, got %s", expectedPath, response["path"])
 	}

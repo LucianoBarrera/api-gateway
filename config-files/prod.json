@@ -1,3 +1,7 @@
 {
-  "allowed_api_key": "example-api-key-prod-env"
+  "allowed_api_key": "example-api-key-prod-env",
+  "known_services": {
+    "users": "http://users-example-prod",
+    "auth": "http://auth-example-prod"
+  }
 }

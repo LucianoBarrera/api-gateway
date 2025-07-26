@@ -8,7 +8,8 @@ import (
 )
 
 type AppConfig struct {
-	AllowedApiKey string `json:"allowed_api_key"`
+	AllowedApiKey string            `json:"allowed_api_key"`
+	KnownServices map[string]string `json:"known_services"`
 }
 
 func LoadAppConfig() AppConfig {

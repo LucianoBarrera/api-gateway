@@ -12,12 +12,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
 	// Register routes
-	mux.HandleFunc("/liveness", s.LivenessHandler)
+	mux.HandleFunc("GET /liveness", s.LivenessHandler)
 
 	// API Gateway route - handles /api/<service>/<path>
 	// Apply request validation and basic auth middleware to API routes
 	apiHandler := s.basicAuthMiddleware(s.requestValidationMiddleware(http.HandlerFunc(s.APIGatewayHandler)))
-	mux.Handle("/api/", apiHandler)
+	mux.Handle("/api/{server}/", apiHandler)
 
 	// Wrap the mux with CORS middleware
 	return s.corsMiddleware(mux)
@@ -38,15 +38,36 @@ func (s *Server) LivenessHandler(w http.ResponseWriter, r *http.Request) {
 
 // APIGatewayHandler handles requests to /api/<service>/<path>
 func (s *Server) APIGatewayHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse the URL path to extract the full path after /api/
-	path := strings.TrimPrefix(r.URL.Path, "/api/")
-	if path == "" {
-		http.Error(w, "Invalid API path", http.StatusBadRequest)
+
+	serviceName := r.PathValue("server")
+
+	// Check if the service exists in the known services map
+	if _, exists := s.appConfig.KnownServices[serviceName]; !exists {
+		// Return 404 Not Found with error message
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+
+		errorResponse := map[string]string{
+			"error":   "Service not found",
+			"service": serviceName,
+		}
+
+		jsonResp, err := json.Marshal(errorResponse)
+		if err != nil {
+			http.Error(w, "Failed to marshal error response", http.StatusInternalServerError)
+			return
+		}
+
+		if _, err := w.Write(jsonResp); err != nil {
+			log.Printf("Failed to write error response: %v", err)
+		}
 		return
 	}
 
+	servicePathRequest := strings.TrimPrefix(r.URL.Path, "/api/"+serviceName)
+
 	// Forward the request to the mock backend service with the full path
-	s.forwardToBackendService(w, r, path)
+	s.forwardToBackendService(w, r, servicePathRequest)
 }
 
 // forwardToBackendService forwards the request to a mock backend service
