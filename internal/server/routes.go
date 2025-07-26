@@ -15,8 +15,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	mux.HandleFunc("/liveness", s.LivenessHandler)
 
 	// API Gateway route - handles /api/<service>/<path>
-	// Apply request validation middleware to API routes
-	apiHandler := s.requestValidationMiddleware(http.HandlerFunc(s.APIGatewayHandler))
+	// Apply request validation and basic auth middleware to API routes
+	apiHandler := s.basicAuthMiddleware(s.requestValidationMiddleware(http.HandlerFunc(s.APIGatewayHandler)))
 	mux.Handle("/api/", apiHandler)
 
 	// Wrap the mux with CORS middleware

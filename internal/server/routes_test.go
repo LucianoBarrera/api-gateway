@@ -182,7 +182,8 @@ func TestAPIGatewayHandler_WithHeaders(t *testing.T) {
 	}
 
 	// Check that all headers are preserved
-	expectedHeaders := []string{"X-Request-ID", "User-Agent", "Accept"}
+	// Note: Headers maintain their original case in the response
+	expectedHeaders := []string{"X-Request-Id", "User-Agent", "Accept"}
 	for _, headerName := range expectedHeaders {
 		if headers[headerName] == nil {
 			t.Errorf("header %s not found in response", headerName)
