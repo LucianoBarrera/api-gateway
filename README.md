@@ -7,6 +7,18 @@ One Paragraph of project description goes here
 These instructions will get you a copy of the project up and running on your local machine for development and testing
 purposes. See deployment for notes on how to deploy the project on a live system.
 
+## Environment Configuration
+
+Before running the application, you need to create an `.env` file in the root directory of the project. This file should contain all the necessary environment variables for the application to run properly.
+
+Create a `.env` file in the project root:
+
+```bash
+touch .env
+```
+
+Add the required environment variables to your `.env` file. You can use the `.env.example` file as a template if available.
+
 ## MakeFile
 
 Run the application locally
