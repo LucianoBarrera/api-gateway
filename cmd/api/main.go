@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/LucianoBarrera/api-gateway/internal/config"
 	"log"
 	"net/http"
 	"os/signal"
@@ -39,7 +40,9 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 
 func main() {
 
-	server := server.NewServer()
+	appConfig := config.LoadAppConfig()
+
+	server := server.NewServer(appConfig)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

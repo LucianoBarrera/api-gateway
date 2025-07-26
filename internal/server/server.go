@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/LucianoBarrera/api-gateway/internal/config"
 	"net/http"
 	"os"
 	"strconv"
@@ -11,13 +12,15 @@ import (
 )
 
 type Server struct {
-	port int
+	appConfig config.AppConfig
+	port      int
 }
 
-func NewServer() *http.Server {
+func NewServer(appConfig config.AppConfig) *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	NewServer := &Server{
-		port: port,
+		port:      port,
+		appConfig: appConfig,
 	}
 
 	// Declare Server config
