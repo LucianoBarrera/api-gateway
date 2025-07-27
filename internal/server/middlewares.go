@@ -34,9 +34,9 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 			requestID = "unknown"
 		}
 
-		// Log incoming request
-		log.Printf("[%s] Incoming request: %s %s",
-			requestID, r.Method, r.URL.String())
+		// Log incoming request with structured format
+		log.Printf("[%s] %s %s - User-Agent: %s - Remote: %s",
+			requestID, r.Method, r.URL.String(), r.UserAgent(), r.RemoteAddr)
 
 		// Wrap response writer to capture status and body
 		rw := &responseWriter{
@@ -50,17 +50,17 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 		// Calculate duration
 		duration := time.Since(start)
 
-		// Log response details
-		log.Printf("[%s] Response: %d %s (duration: %v)",
-			requestID, rw.statusCode, http.StatusText(rw.statusCode), duration)
+		// Log response details with structured format
+		log.Printf("[%s] %s %s - Status: %d (%s) - Duration: %v - Size: %d bytes",
+			requestID, r.Method, r.URL.Path, rw.statusCode, http.StatusText(rw.statusCode), duration, len(rw.body))
 
-		// Log response body (truncated if too long)
-		if len(rw.body) > 0 {
+		// Log response body (truncated if too long) only for errors
+		if rw.statusCode >= 400 && len(rw.body) > 0 {
 			bodyPreview := string(rw.body)
 			if len(bodyPreview) > 500 {
 				bodyPreview = bodyPreview[:500] + "... (truncated)"
 			}
-			log.Printf("[%s] Response body: %s", requestID, bodyPreview)
+			log.Printf("[%s] Error response body: %s", requestID, bodyPreview)
 		}
 	})
 }
@@ -70,23 +70,7 @@ func (s *Server) requestValidationMiddleware(next http.Handler) http.Handler {
 		// Check if X-Request-ID header is present
 		requestID := r.Header.Get("X-Request-ID")
 		if requestID == "" {
-			// Return 400 Bad Request with error message
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-
-			errorResponse := map[string]string{
-				"error": "X-Request-ID header is missing",
-			}
-
-			jsonResp, err := json.Marshal(errorResponse)
-			if err != nil {
-				http.Error(w, "Failed to marshal error response", http.StatusInternalServerError)
-				return
-			}
-
-			if _, err := w.Write(jsonResp); err != nil {
-
-			}
+			s.writeErrorResponse(w, http.StatusBadRequest, "X-Request-ID header is missing")
 			return
 		}
 
@@ -100,51 +84,40 @@ func (s *Server) basicAuthMiddleware(next http.Handler) http.Handler {
 		// Check if x-api-key header is present
 		apiKey := r.Header.Get("x-api-key")
 		if apiKey == "" {
-			// Return 401 Unauthorized with error message
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-
-			errorResponse := map[string]string{
-				"error": "x-api-key header is missing",
-			}
-
-			jsonResp, err := json.Marshal(errorResponse)
-			if err != nil {
-				http.Error(w, "Failed to marshal error response", http.StatusInternalServerError)
-				return
-			}
-
-			if _, err := w.Write(jsonResp); err != nil {
-				// Log error but don't return another error to avoid double error
-			}
+			s.writeErrorResponse(w, http.StatusUnauthorized, "x-api-key header is missing")
 			return
 		}
 
 		// Validate the API key
 		if apiKey != s.appConfig.AllowedApiKey {
-			// Return 401 Unauthorized with error message
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-
-			errorResponse := map[string]string{
-				"error": "Invalid API key",
-			}
-
-			jsonResp, err := json.Marshal(errorResponse)
-			if err != nil {
-				http.Error(w, "Failed to marshal error response", http.StatusInternalServerError)
-				return
-			}
-
-			if _, err := w.Write(jsonResp); err != nil {
-				// Log error but don't return another error to avoid double error
-			}
+			s.writeErrorResponse(w, http.StatusUnauthorized, "Invalid API key")
 			return
 		}
 
 		// Proceed with the next handler if authentication passes
 		next.ServeHTTP(w, r)
 	})
+}
+
+// writeErrorResponse is a helper method to write consistent error responses
+func (s *Server) writeErrorResponse(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	errorResponse := map[string]string{
+		"error": message,
+	}
+
+	jsonResp, err := json.Marshal(errorResponse)
+	if err != nil {
+		log.Printf("Failed to marshal error response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(jsonResp); err != nil {
+		log.Printf("Failed to write error response: %v", err)
+	}
 }
 
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
