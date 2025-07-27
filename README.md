@@ -230,3 +230,28 @@ Run tests with:
 ```bash
 make test
 ```
+
+### Integration Test Suite
+
+A comprehensive test script is available to verify the API Gateway functionality:
+
+```bash
+# Run the integration test suite
+./test-reverse-proxy.sh
+```
+
+This test script validates:
+- ✅ Health check endpoint
+- ✅ Request validation (X-Request-ID header)
+- ✅ Authentication (x-api-key header)
+- ✅ Invalid API key handling
+- ✅ Users service routing
+- ✅ Auth service routing
+- ✅ Non-existent service handling
+- ✅ Direct mock server access (for comparison)
+
+**Prerequisites for running the test suite:**
+- Docker Compose services must be running (`make docker-run`)
+- `jq` command-line JSON processor (for formatted output)
+
+The test script will automatically wait for services to be ready and provide detailed output for each test case.
