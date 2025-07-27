@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type AppConfig struct {
@@ -17,42 +18,43 @@ func LoadAppConfig() AppConfig {
 
 	err := readConfig(GetEnvironment(), &cfg)
 	if err != nil {
-		log.Panic("Fatal error loading config: ", err.Error())
+		log.Fatalf("Fatal error loading config: %v", err)
 	}
 	return cfg
 }
 
-// ReadConfig reads a file that is located in the path ./config-files/<env>.json and unmarshalls it into a the given config struct
+// readConfig reads a file that is located in the path ./config-files/<env>.json and unmarshalls it into the given config struct
 func readConfig(env string, bindTo interface{}) error {
-	configFile := readConfigFile(env)
+	configFile, err := readConfigFile(env)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+	defer configFile.Close()
+
 	jsonParser := json.NewDecoder(configFile)
 	if err := jsonParser.Decode(&bindTo); err != nil {
-		fmt.Println("parsing config file", err.Error())
+		return fmt.Errorf("failed to parse config file: %w", err)
 	}
 
 	return nil
 }
 
-func readConfigFile(env string) *os.File {
-	// using the function
-	mydir, err := os.Getwd()
+func readConfigFile(env string) (*os.File, error) {
+	// Get current working directory
+	workDir, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	fileNames := []string{
-		mydir + "/config-files/" + env + ".json",
+	// Construct config file path
+	configPath := filepath.Join(workDir, "config-files", env+".json")
+
+	// Try to open the config file
+	configFile, err := os.Open(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open config file '%s': %w", configPath, err)
 	}
 
-	for _, name := range fileNames {
-		configFile, err := os.Open(name)
-		if err != nil {
-			fmt.Println("opening config file error: ", err.Error())
-		} else {
-			fmt.Println("Config file", name, " loaded")
-			return configFile
-		}
-	}
-
-	return nil
+	log.Printf("Config file loaded successfully: %s", configPath)
+	return configFile, nil
 }
