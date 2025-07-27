@@ -1,7 +1,7 @@
 {
   "allowed_api_key": "example-api-key-dev-env",
   "known_services": {
-    "users": "http://users-example-dev",
-    "auth": "http://auth-example-dev"
+    "users": "http://mock-users:8081",
+    "auth": "http://mock-auth:8082"
   }
 }
