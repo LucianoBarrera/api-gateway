@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/LucianoBarrera/api-gateway/internal/config"
 	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/LucianoBarrera/api-gateway/internal/config"
 
 	"github.com/LucianoBarrera/api-gateway/internal/server"
 )

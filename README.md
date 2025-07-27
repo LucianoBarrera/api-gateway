@@ -30,6 +30,13 @@ A lightweight API Gateway/Reverse Proxy written in Go that routes incoming HTTP 
 - Docker Compose setup for local development
 - Includes mock backend services for testing
 
+### 📁 **Environment Management**
+- `.env` file tracked in repository for easy setup
+- Shared configuration across team members
+- Environment-specific settings via configuration files
+
+> **⚠️ Security Note:** This is a toy/demo project where the `.env` file is tracked in the repository for ease of use and quick setup. In production environments, the `.env` file should **NOT** be committed to the repository for security reasons. Instead, use environment variables, secrets management systems, or configuration management tools.
+
 ## Architecture
 
 ```
@@ -51,20 +58,17 @@ A lightweight API Gateway/Reverse Proxy written in Go that routes incoming HTTP 
 
 ### Environment Setup
 
-**⚠️ Important: Create the `.env` file first before running the application**
+**⚠️ Important: The `.env` file is now tracked in the repository and should be committed**
 
-1. **Create the `.env` file**
-   ```bash
-   # Create .env file in the project root
-   touch .env
-   ```
+The project includes a `.env` file with default configuration values. You can modify it according to your environment needs:
 
-2. **Add required environment variables**
-   ```bash
-   # Add these variables to your .env file
-   PORT=8080
-   APP_ENV=local
-   ```
+```bash
+# Default .env file contents
+PORT=8080
+APP_ENV=local
+```
+
+**Note:** The `.env` file is now committed to the repository, making it easier to share configuration across team members and deployment environments.
 
 ### Using Docker Compose (Recommended)
 
@@ -212,6 +216,7 @@ api-gateway/
 │   ├── config/              # Configuration management
 │   └── server/              # HTTP server and middleware
 ├── mock-server/             # Mock backend services
+├── .env                     # Environment variables (tracked in repo)
 ├── docker-compose.yml       # Docker Compose setup
 ├── Dockerfile              # Application Dockerfile
 └── Makefile                # Build and run commands
@@ -255,3 +260,26 @@ This test script validates:
 - `jq` command-line JSON processor (for formatted output)
 
 The test script will automatically wait for services to be ready and provide detailed output for each test case.
+
+## Security Considerations
+
+### Environment Variables and Secrets
+
+**For this demo/toy project:**
+- The `.env` file is tracked in the repository for easy setup and demonstration purposes
+- This allows developers to quickly get started without manual configuration
+
+**For production environments:**
+- **Never commit `.env` files to version control**
+- Use environment variables, secrets management systems (AWS Secrets Manager, HashiCorp Vault, etc.)
+- Implement proper access controls and encryption for sensitive data
+- Consider using configuration management tools for different environments
+- Use CI/CD pipelines to inject environment variables securely
+
+### Best Practices for Production
+
+1. **Environment Variables**: Use system environment variables or container orchestration secrets
+2. **Secrets Management**: Implement proper secrets management for API keys, database credentials, etc.
+3. **Access Control**: Ensure only authorized personnel can access sensitive configuration
+4. **Audit Logging**: Log access to sensitive configuration data
+5. **Regular Rotation**: Implement regular rotation of API keys and secrets
