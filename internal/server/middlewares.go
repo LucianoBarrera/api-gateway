@@ -2,8 +2,68 @@ package server
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"time"
 )
+
+// responseWriter wraps http.ResponseWriter to capture status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+	body       []byte
+}
+
+func (rw *responseWriter) WriteHeader(statusCode int) {
+	rw.statusCode = statusCode
+	rw.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (rw *responseWriter) Write(data []byte) (int, error) {
+	rw.body = append(rw.body, data...)
+	return rw.ResponseWriter.Write(data)
+}
+
+func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Get request ID for correlation
+		requestID := r.Header.Get("X-Request-ID")
+		if requestID == "" {
+			requestID = "unknown"
+		}
+
+		// Log incoming request
+		log.Printf("[%s] Incoming request: %s %s",
+			requestID, r.Method, r.URL.String())
+
+		// Wrap response writer to capture status and body
+		rw := &responseWriter{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK, // Default status code
+		}
+
+		// Process the request
+		next.ServeHTTP(rw, r)
+
+		// Calculate duration
+		duration := time.Since(start)
+
+		// Log response details
+		log.Printf("[%s] Response: %d %s (duration: %v)",
+			requestID, rw.statusCode, http.StatusText(rw.statusCode), duration)
+
+		// Log response body (truncated if too long)
+		if len(rw.body) > 0 {
+			bodyPreview := string(rw.body)
+			if len(bodyPreview) > 500 {
+				bodyPreview = bodyPreview[:500] + "... (truncated)"
+			}
+			log.Printf("[%s] Response body: %s", requestID, bodyPreview)
+		}
+	})
+}
 
 func (s *Server) requestValidationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -19,8 +19,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	apiHandler := s.basicAuthMiddleware(s.requestValidationMiddleware(http.HandlerFunc(s.APIGatewayHandler)))
 	mux.Handle("/api/{server}/", apiHandler)
 
-	// Wrap the mux with CORS middleware
-	return s.corsMiddleware(mux)
+	// Wrap the mux with CORS middleware and logging middleware
+	return s.loggingMiddleware(s.corsMiddleware(mux))
 }
 
 func (s *Server) LivenessHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +75,12 @@ func (s *Server) forwardToBackendService(w http.ResponseWriter, r *http.Request,
 	originalPath := r.URL.Path
 	trimmedPath := strings.TrimPrefix(originalPath, "/api/"+serviceName)
 
-	log.Printf("API Gateway: Forwarding %s request to backend service with path '%s'", r.Method, targetService)
+	requestID := r.Header.Get("X-Request-ID")
+	if requestID == "" {
+		requestID = "unknown"
+	}
+	log.Printf("[%s] API Gateway: Forwarding %s request to backend service '%s' with path '%s'",
+		requestID, r.Method, serviceName, targetService)
 
 	targetURL, err := url.Parse(targetService)
 	if err != nil {
@@ -90,9 +95,9 @@ func (s *Server) forwardToBackendService(w http.ResponseWriter, r *http.Request,
 		originalDirector(req)
 		// Set the trimmed path
 		req.URL.Path = trimmedPath
-		log.Printf("Modified request URL path to: %s", req.URL.Path)
+		log.Printf("[%s] Modified request URL path to: %s", requestID, req.URL.Path)
 	}
 
-	log.Printf("Proxying request to: %s", targetURL)
+	log.Printf("[%s] Proxying request to: %s", requestID, targetURL)
 	proxy.ServeHTTP(w, r)
 }
