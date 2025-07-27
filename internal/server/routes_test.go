@@ -9,7 +9,19 @@ import (
 	"testing"
 
 	"github.com/LucianoBarrera/api-gateway/internal/config"
+	"github.com/LucianoBarrera/api-gateway/internal/usecase"
 )
+
+// createTestRequest creates a request with the proper path value set for testing
+func createTestRequest(method, path string, body io.Reader) *http.Request {
+	req := httptest.NewRequest(method, path, body)
+	// Extract service name from path for testing
+	pathParts := strings.Split(strings.TrimPrefix(path, "/api/"), "/")
+	if len(pathParts) > 0 {
+		req.SetPathValue("server", pathParts[0])
+	}
+	return req
+}
 
 func TestHandler(t *testing.T) {
 	s := &Server{}
@@ -44,7 +56,8 @@ func TestAPIGatewayHandler_GET(t *testing.T) {
 	}
 
 	s := &Server{
-		appConfig: appConfig,
+		appConfig:         appConfig,
+		apiGatewayService: usecase.NewMockApiGatewayService(appConfig),
 	}
 
 	tests := []struct {
@@ -89,7 +102,7 @@ func TestAPIGatewayHandler_GET(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req := createTestRequest(http.MethodGet, tt.path, nil)
 			w := httptest.NewRecorder()
 
 			s.APIGatewayHandler(w, req)
@@ -143,12 +156,13 @@ func TestAPIGatewayHandler_POST(t *testing.T) {
 	}
 
 	s := &Server{
-		appConfig: appConfig,
+		appConfig:         appConfig,
+		apiGatewayService: usecase.NewMockApiGatewayService(appConfig),
 	}
 
 	requestBody := `{"name": "John Doe", "email": "john@example.com"}`
 
-	req := httptest.NewRequest(http.MethodPost, "/api/users/create", strings.NewReader(requestBody))
+	req := createTestRequest(http.MethodPost, "/api/users/create", strings.NewReader(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer token123")
 
@@ -205,10 +219,11 @@ func TestAPIGatewayHandler_WithHeaders(t *testing.T) {
 	}
 
 	s := &Server{
-		appConfig: appConfig,
+		appConfig:         appConfig,
+		apiGatewayService: usecase.NewMockApiGatewayService(appConfig),
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/users/123/reviews", nil)
+	req := createTestRequest(http.MethodGet, "/api/users/123/reviews", nil)
 	req.Header.Set("X-Request-ID", "req-123")
 	req.Header.Set("User-Agent", "test-agent")
 	req.Header.Set("Accept", "application/json")

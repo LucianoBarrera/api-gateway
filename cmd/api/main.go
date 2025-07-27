@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/LucianoBarrera/api-gateway/internal/config"
-
 	"github.com/LucianoBarrera/api-gateway/internal/server"
+	"github.com/LucianoBarrera/api-gateway/internal/usecase"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
@@ -43,7 +43,10 @@ func main() {
 
 	appConfig := config.LoadAppConfig()
 
-	server := server.NewServer(appConfig)
+	// Create the API gateway service
+	apiGatewayService := usecase.NewApiGatewayService(appConfig)
+
+	server := server.NewServer(appConfig, apiGatewayService)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

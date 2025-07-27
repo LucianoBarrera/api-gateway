@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/LucianoBarrera/api-gateway/internal/config"
+	"github.com/LucianoBarrera/api-gateway/internal/usecase"
 )
 
 func TestBasicAuthMiddleware(t *testing.T) {
@@ -18,7 +19,8 @@ func TestBasicAuthMiddleware(t *testing.T) {
 	}
 
 	server := &Server{
-		appConfig: appConfig,
+		appConfig:         appConfig,
+		apiGatewayService: usecase.NewMockApiGatewayService(appConfig),
 	}
 
 	// Create a simple handler for testing
@@ -88,7 +90,8 @@ func TestLoggingMiddleware(t *testing.T) {
 	}
 
 	server := &Server{
-		appConfig: appConfig,
+		appConfig:         appConfig,
+		apiGatewayService: usecase.NewMockApiGatewayService(appConfig),
 	}
 
 	// Create a test handler that returns a simple response
@@ -135,7 +138,8 @@ func TestLoggingMiddlewareWithoutRequestID(t *testing.T) {
 	}
 
 	server := &Server{
-		appConfig: appConfig,
+		appConfig:         appConfig,
+		apiGatewayService: usecase.NewMockApiGatewayService(appConfig),
 	}
 
 	// Create a test handler
