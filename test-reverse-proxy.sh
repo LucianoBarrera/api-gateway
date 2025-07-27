@@ -8,7 +8,7 @@ echo "=================================================="
 
 # Wait for services to be ready
 echo "Waiting for services to be ready..."
-sleep 10
+sleep 3
 
 # Test health check
 echo -e "\n1. Testing API Gateway health check:"
