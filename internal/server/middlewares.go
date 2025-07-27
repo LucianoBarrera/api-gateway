@@ -70,7 +70,7 @@ func (s *Server) requestValidationMiddleware(next http.Handler) http.Handler {
 		// Check if X-Request-ID header is present
 		requestID := r.Header.Get("X-Request-ID")
 		if requestID == "" {
-			s.writeErrorResponse(w, http.StatusBadRequest, "X-Request-ID header is missing")
+			writeErrorResponse(w, http.StatusBadRequest, "X-Request-ID header is missing")
 			return
 		}
 
@@ -84,13 +84,13 @@ func (s *Server) basicAuthMiddleware(next http.Handler) http.Handler {
 		// Check if x-api-key header is present
 		apiKey := r.Header.Get("x-api-key")
 		if apiKey == "" {
-			s.writeErrorResponse(w, http.StatusUnauthorized, "x-api-key header is missing")
+			writeErrorResponse(w, http.StatusUnauthorized, "x-api-key header is missing")
 			return
 		}
 
 		// Validate the API key
 		if apiKey != s.appConfig.AllowedApiKey {
-			s.writeErrorResponse(w, http.StatusUnauthorized, "Invalid API key")
+			writeErrorResponse(w, http.StatusUnauthorized, "Invalid API key")
 			return
 		}
 
@@ -100,7 +100,7 @@ func (s *Server) basicAuthMiddleware(next http.Handler) http.Handler {
 }
 
 // writeErrorResponse is a helper method to write consistent error responses
-func (s *Server) writeErrorResponse(w http.ResponseWriter, statusCode int, message string) {
+func writeErrorResponse(w http.ResponseWriter, statusCode int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
