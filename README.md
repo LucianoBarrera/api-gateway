@@ -58,7 +58,7 @@ A lightweight API Gateway/Reverse Proxy written in Go that routes incoming HTTP 
 
 ### Environment Setup
 
-**⚠️ Important: The `.env` file is now tracked in the repository and should be committed**
+**⚠️ Important: The `.env` file is now tracked in the repository**
 
 The project includes a `.env` file with default configuration values. You can modify it according to your environment needs:
 
@@ -261,25 +261,4 @@ This test script validates:
 
 The test script will automatically wait for services to be ready and provide detailed output for each test case.
 
-## Security Considerations
-
-### Environment Variables and Secrets
-
-**For this demo/toy project:**
-- The `.env` file is tracked in the repository for easy setup and demonstration purposes
-- This allows developers to quickly get started without manual configuration
-
-**For production environments:**
-- **Never commit `.env` files to version control**
-- Use environment variables, secrets management systems (AWS Secrets Manager, HashiCorp Vault, etc.)
-- Implement proper access controls and encryption for sensitive data
-- Consider using configuration management tools for different environments
-- Use CI/CD pipelines to inject environment variables securely
-
-### Best Practices for Production
-
-1. **Environment Variables**: Use system environment variables or container orchestration secrets
-2. **Secrets Management**: Implement proper secrets management for API keys, database credentials, etc.
-3. **Access Control**: Ensure only authorized personnel can access sensitive configuration
-4. **Audit Logging**: Log access to sensitive configuration data
-5. **Regular Rotation**: Implement regular rotation of API keys and secrets
+ rotation of API keys and secrets
