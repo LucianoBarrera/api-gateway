@@ -2,16 +2,16 @@ package server
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
 	mux := http.NewServeMux()
 
-	// Register routes
 	mux.HandleFunc("GET /liveness", s.LivenessHandler)
 
 	// API Gateway route - handles /api/<service>/<path>
@@ -64,64 +64,35 @@ func (s *Server) APIGatewayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	servicePathRequest := strings.TrimPrefix(r.URL.Path, "/api/"+serviceName)
-
-	// Forward the request to the mock backend service with the full path
-	s.forwardToBackendService(w, r, servicePathRequest)
+	s.forwardToBackendService(w, r, serviceName)
 }
 
 // forwardToBackendService forwards the request to a mock backend service
-func (s *Server) forwardToBackendService(w http.ResponseWriter, r *http.Request, fullPath string) {
-	// Log the request details
-	log.Printf("API Gateway: Forwarding %s request to backend service with path '%s'", r.Method, fullPath)
+func (s *Server) forwardToBackendService(w http.ResponseWriter, r *http.Request, serviceName string) {
+	targetService, _ := s.appConfig.KnownServices[serviceName]
 
-	// Log headers
-	log.Printf("Request Headers:")
-	for name, values := range r.Header {
-		for _, value := range values {
-			log.Printf("  %s: %s", name, value)
-		}
-	}
+	// Remove the /api/<serviceName> prefix from the path
+	originalPath := r.URL.Path
+	trimmedPath := strings.TrimPrefix(originalPath, "/api/"+serviceName)
 
-	// Log body for POST requests
-	if r.Method == http.MethodPost {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Printf("Error reading request body: %v", err)
-			http.Error(w, "Error reading request body", http.StatusBadRequest)
-			return
-		}
-		log.Printf("Request Body: %s", string(body))
+	log.Printf("API Gateway: Forwarding %s request to backend service with path '%s'", r.Method, targetService)
 
-		// Restore the body for potential further processing
-		r.Body = io.NopCloser(strings.NewReader(string(body)))
-	}
-
-	// Mock backend service response
-	response := map[string]interface{}{
-		"message": "Request forwarded to mock backend service",
-		"path":    fullPath,
-		"method":  r.Method,
-		"headers": r.Header,
-	}
-
-	// Add body info for POST requests
-	if r.Method == http.MethodPost {
-		body, _ := io.ReadAll(r.Body)
-		response["body"] = string(body)
-		r.Body = io.NopCloser(strings.NewReader(string(body)))
-	}
-
-	// Return the response
-	w.Header().Set("Content-Type", "application/json")
-	jsonResp, err := json.Marshal(response)
+	targetURL, err := url.Parse(targetService)
 	if err != nil {
-		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
-		return
+		panic(err)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(jsonResp); err != nil {
-		log.Printf("Failed to write response: %v", err)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+
+	// Custom director to modify the request URL
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		// Set the trimmed path
+		req.URL.Path = trimmedPath
+		log.Printf("Modified request URL path to: %s", req.URL.Path)
 	}
+
+	log.Printf("Proxying request to: %s", targetURL)
+	proxy.ServeHTTP(w, r)
 }
