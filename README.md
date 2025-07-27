@@ -260,5 +260,3 @@ This test script validates:
 - `jq` command-line JSON processor (for formatted output)
 
 The test script will automatically wait for services to be ready and provide detailed output for each test case.
-
- rotation of API keys and secrets
