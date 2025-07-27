@@ -40,45 +40,13 @@ func (s *Server) APIGatewayHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Check if service name is empty
 	if serviceName == "" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-
-		errorResponse := map[string]string{
-			"error": "Invalid path - service name is required",
-		}
-
-		jsonResp, err := json.Marshal(errorResponse)
-		if err != nil {
-			http.Error(w, "Failed to marshal error response", http.StatusInternalServerError)
-			return
-		}
-
-		if _, err := w.Write(jsonResp); err != nil {
-			log.Printf("Failed to write error response: %v", err)
-		}
+		writeErrorResponse(w, http.StatusBadRequest, "Invalid path - server name is required")
 		return
 	}
 
 	// Check if the service exists in the known services map
 	if _, exists := s.appConfig.KnownServices[serviceName]; !exists {
-		// Return 404 Not Found with error message
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-
-		errorResponse := map[string]string{
-			"error":   "Service not found",
-			"service": serviceName,
-		}
-
-		jsonResp, err := json.Marshal(errorResponse)
-		if err != nil {
-			http.Error(w, "Failed to marshal error response", http.StatusInternalServerError)
-			return
-		}
-
-		if _, err := w.Write(jsonResp); err != nil {
-			log.Printf("Failed to write error response: %v", err)
-		}
+		writeErrorResponse(w, http.StatusNotFound, "Service not found")
 		return
 	}
 

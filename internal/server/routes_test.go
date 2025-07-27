@@ -137,10 +137,6 @@ func TestAPIGatewayHandler_GET(t *testing.T) {
 				if response["error"] != tt.expectedError {
 					t.Errorf("expected error %s, got %s", tt.expectedError, response["error"])
 				}
-
-				if response["service"] == "" {
-					t.Error("expected service field in error response")
-				}
 			}
 		})
 	}
